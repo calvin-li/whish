@@ -1,11 +1,12 @@
 import unittest
 import Hello
+import os
+from pathlib import Path
 
 
 class MyTestCase(unittest.TestCase):
     def test_db_connection(self):
-        # from https://www.sqlitetutorial.net/sqlite-sample-database/
-        db_file_path = 'C:\\Users\\clvn1\\PycharmProjects\\whish\\chinook.db'
+        db_file_path = Path('db/chinook.db')     # from https://www.sqlitetutorial.net/sqlite-sample-database/
         conn = Hello.create_connection(db_file_path)
         self.assertNotEqual(conn, None, "failed connection test")
 

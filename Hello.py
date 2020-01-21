@@ -4,12 +4,14 @@ from sqlalchemy import create_engine
 from json import dumps
 from flask_jsonpify import jsonify
 import sqlite3
+from pathlib import Path
 
 
+# relative paths only, for portability
 def create_connection(db_file):
     connection = None
     try:
-        connection = sqlite3.connect(db_file)
+        connection = sqlite3.connect(Path.joinpath(Path(__file__).parent.absolute(), db_file))
     except sqlite3.Error as e:
         print(e)
     return connection
@@ -20,8 +22,6 @@ def execute_query(connection, query):
     cursor.execute(query)
     return cursor.fetchall()
 
-
-db_file_path = 'C:\\Users\\clvn1\\PycharmProjects\\whish\\chinook.db'
 
 class Employees(Resource):
     @staticmethod
@@ -49,9 +49,11 @@ class EmployeesName(Resource):
         return jsonify(result)
 
 
-api.add_resource(Employees, '/employees')
-api.add_resource(Tracks, '/tracks')
-api.add_resource(EmployeesName, '/employees/<employee_id>')
-
 if __name__ == '__main__':
+    db_file_path = 'db/chinook.db'
+    app = Flask(__name__)
+    api = Api(app)
+    api.add_resource(Employees, '/employees')
+    api.add_resource(Tracks, '/tracks')
+    api.add_resource(EmployeesName, '/employees/<employee_id>')
     app.run(port='5002')
