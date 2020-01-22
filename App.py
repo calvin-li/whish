@@ -112,6 +112,25 @@ class User(Resource):
             return 'Bad ID format', 400
 
     @staticmethod
+    def patch(user_id):
+        try:
+            user_id = int(user_id)
+            json = request.json
+            columns = ['email', 'first_name', 'last_name']
+            set_clause = []
+            for key in json.keys():
+                if key not in columns:
+                    return 'Semantic error', 400
+                else:
+                    value = json[key]
+                    set_clause.append(f"{key} = '{value}'")
+
+            execute_sql(f'update users set {", ".join(set_clause)} where id={user_id}')
+            return 'Ok', 204
+        except ValueError:
+            return 'Bad ID format', 400
+
+    @staticmethod
     def delete(user_id):
         try:
             user_id = int(user_id)
@@ -156,6 +175,24 @@ class Book(Resource):
         return jsonify(data)
 
     @staticmethod
+    def patch(isbn):
+        try:
+            json = request.json
+            columns = ['author', 'title', 'publish_date']
+            set_clause = []
+            for key in json.keys():
+                if key not in columns:
+                    return 'Semantic error', 400
+                else:
+                    value = json[key]
+                    set_clause.append(f"{key} = '{value}'")
+
+            execute_sql(f"update books set {', '.join(set_clause)} where isbn='{isbn}'")
+            return 'Ok', 204
+        except ValueError:
+            return 'Bad ID format', 400
+
+    @staticmethod
     def delete(isbn):
         execute_sql(f"delete from books where isbn='{isbn}'")
         return 'Ok', 204
@@ -184,6 +221,27 @@ class Wishlist(Resource):
             return 'Ok', 201
         except KeyError:
             return 'Semantic error', 400
+        except IntegrityError as e:
+            if '(sqlite3.IntegrityError) UNIQUE constraint failed' in e.args[0]:
+                return 'Book already in wishlist', 400
+            elif '(sqlite3.IntegrityError) FOREIGN KEY constraint failed' in e.args[0]:
+                return 'User ID or ISBN does not exist', 400
+            else:
+                raise
+
+    @staticmethod
+    def put(user_id):
+        try:
+            user_id = int(user_id)
+            json = request.json
+            if json.keys() != {'wishlist': ''}.keys():
+                return 'Semantic error', 400
+            execute_sql(f"delete from wishlist where user_id={user_id}")
+            for isbn in json['wishlist']:
+                execute_sql(f"insert into wishlist values({user_id}, '{isbn}')")
+            return 'Ok', 204
+        except ValueError:
+            return 'Bad ID format', 400
         except IntegrityError as e:
             if '(sqlite3.IntegrityError) UNIQUE constraint failed' in e.args[0]:
                 return 'Book already in wishlist', 400

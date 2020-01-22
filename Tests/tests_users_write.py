@@ -42,22 +42,30 @@ class TestsApiWrite(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_patch_user(self):
+        user_id = 'error'
+        response = self.app.patch(f'/users/{user_id}')
+        self.assertEqual(response.status_code, 400)
+
         user_id = 1
         bad_format = {'no_column': 'test'}
         response = self.app.patch(f'/users/{user_id}', json=bad_format)
         self.assertEqual(response.status_code, 400)
 
         patch_user_data = {
-            'first_name': 'newname',
-            'last_name': 'newlastname',
+            'first_name': 'new first name',
+            'last_name': 'new last name',
         }
         response = self.app.patch(f'/users/{user_id}', json=patch_user_data)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 204)
 
         response = self.app.get(f'/users/{user_id}')
         expected_json = {
-            'email': 'testuseru@gmail.com', 'first_name': 'newname', 'id': 3, 'newlastname': 'u',
-            'password': '$2y$12$5wKzo5qkMKeRQ9BA3/gK/u6B5MRi5DsI1KVyDDLRtevWwTUGBIKz.', 'wishlist': []
+            'email': 'testusera@gmail.com',
+            'first_name': 'new first name',
+            'id': 1,
+            'last_name': 'new last name',
+            'password': '$2y$12$8lSGo1QAbTL5muXpgNxpyu/luQlEvPkrqyybqb0iTvEUYAhWvPZfK',
+            'wishlist': ['978-0-380-01430-9']
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(expected_json, response.json)

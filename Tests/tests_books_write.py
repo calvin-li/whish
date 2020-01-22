@@ -43,6 +43,29 @@ class TestsApiWrite(unittest.TestCase):
         response = self.app.post('/books', json=new_book_data)
         self.assertEqual(response.status_code, 400)
 
+    def test_patch_book(self):
+        isbn = '0-385-08506-0'
+        bad_format = {'no_column': 'test'}
+        response = self.app.patch(f'/books/{isbn}', json=bad_format)
+        self.assertEqual(response.status_code, 400)
+
+        patch_book_data = {
+            'author': 'new author',
+            'publish_date': '1970-01-01',
+        }
+        response = self.app.patch(f'/books/{isbn}', json=patch_book_data)
+        self.assertEqual(response.status_code, 204)
+
+        response = self.app.get(f'/books/{isbn}')
+        expected_json = {
+            'author': 'new author',
+            'isbn': '0-385-08506-0',
+            'publish_date': '1970-01-01',
+            'title': 'The Guns of Avalon'
+        }
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(expected_json, response.json)
+
     def test_del_book(self):
         response = self.app.delete("/books/wrong-isbn")
         self.assertEqual(response.status_code, 204)
