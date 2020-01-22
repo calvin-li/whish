@@ -18,7 +18,7 @@ def set_sqlite_pragma(db_connection, connection_record):
 
 # relative paths only, for portability
 def create_connection(db_file):
-    conn_string = "sqlite:///" + str(Path.joinpath(Path(__file__).parent.absolute(), db_file))
+    conn_string = "sqlite:///" + get_abs_path(db_file)
     try:
         connection = create_engine(conn_string)
         connection.execute("pragma foreign_keys=ON")
@@ -26,6 +26,10 @@ def create_connection(db_file):
         print(e)
         raise
     return connection
+
+
+def get_abs_path(file):
+    return str(Path.joinpath(Path(__file__).parent.absolute(), file))
 
 
 def execute_sql(conn2, query):
@@ -39,10 +43,26 @@ def execute_sql(conn2, query):
         return [dict(zip(query.keys(), i)) for i in data]
 
 
+def get_wishlist(connection):
+    raw_data = execute_sql(connection, "select * from wishlist")
+    wishlists = {}
+    for row in raw_data:
+        user_id = row['user_id']
+        if user_id not in wishlists:
+            wishlists[user_id] = []
+        wishlists[user_id].append(row['isbn'])
+    return wishlists
+
+
 class Users(Resource):
     @staticmethod
     def get():
         data = execute_sql(App.connection, "SELECT * FROM users")
+        wishlists = get_wishlist(App.connection)
+        for user_id in wishlists.keys():
+            wishlist = wishlists[user_id]
+            user = [x for x in data if x['id'] == user_id][0]
+            user['wishlist'] = wishlist
         return jsonify(data)
 
 
