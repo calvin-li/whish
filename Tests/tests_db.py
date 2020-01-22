@@ -1,14 +1,15 @@
 import unittest
 from sqlalchemy import exc as sqlalchemy_exc
-import Hello
+import App
 from pathlib import Path
 
 
-class DataBaseTests(unittest.TestCase):
+class TestsDataBase(unittest.TestCase):
     def test_db_connection(self):
         db_file_path = Path('db/chinook.db')     # from https://www.sqlitetutorial.net/sqlite-sample-database/
-        conn = Hello.create_connection(db_file_path)
+        conn = App.create_connection(db_file_path)
         self.assertNotEqual(conn, None, "failed connection test")
+        App.Server.connection = conn
 
         # testing the connection with a query. In a larger project this could be its own test with a spoofed connection
         test_query = "SELECT * FROM media_types"
@@ -20,16 +21,16 @@ class DataBaseTests(unittest.TestCase):
             {'MediaTypeId': 4, 'Name': 'Purchased AAC audio file'},
             {'MediaTypeId': 5, 'Name': 'AAC audio file'}
         ]
-        data = Hello.execute_sql(conn, test_query)
+        data = App.execute_sql(test_query)
         self.assertListEqual(data, expected_data, "failed query test")
 
         # testing non-query statements. if this fails might have to manually clean up db
-        Hello.execute_sql(conn, "insert into media_types values(0, 'test')")
-        Hello.execute_sql(conn, "delete from media_types where MediaTypeId=0;")
+        App.execute_sql("insert into media_types values(0, 'test')")
+        App.execute_sql("delete from media_types where MediaTypeId=0;")
 
     def test_foreign_key_check(self):
         db_file_path = Path('db/whish.db')     # from https://www.sqlitetutorial.net/sqlite-sample-database/
-        conn = Hello.create_connection(db_file_path)
+        conn = App.create_connection(db_file_path)
 
         test_query = "insert into wishlist (user_id, isbn) values(-1, 'fake_isbn')"
         try:

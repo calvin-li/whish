@@ -32,9 +32,9 @@ def get_abs_path(file):
     return str(Path.joinpath(Path(__file__).parent.absolute(), file))
 
 
-def execute_sql(conn2, query):
+def execute_sql(query):
     try:
-        query = conn2.execute(query)
+        query = Server.connection.execute(query)
     except Exception as e:
         print(e)
         raise
@@ -43,8 +43,8 @@ def execute_sql(conn2, query):
         return [dict(zip(query.keys(), i)) for i in data]
 
 
-def get_wishlist(connection):
-    raw_data = execute_sql(connection, "select * from wishlist")
+def get_wishlists():
+    raw_data = execute_sql("select * from wishlist")
     wishlists = {}
     for row in raw_data:
         user_id = row['user_id']
@@ -54,11 +54,20 @@ def get_wishlist(connection):
     return wishlists
 
 
+def get_wishlist(user_id):
+    raw_data = execute_sql(f"select * from wishlist where user_id={user_id}")
+    wishlist = []
+    for row in raw_data:
+        if row['user_id'] == int(user_id):
+            wishlist.append(row['isbn'])
+    return wishlist
+
+
 class Users(Resource):
     @staticmethod
     def get():
-        data = execute_sql(App.connection, "SELECT * FROM users")
-        wishlists = get_wishlist(App.connection)
+        data = execute_sql("SELECT * FROM users")
+        wishlists = get_wishlists()
         for user_id in wishlists.keys():
             wishlist = wishlists[user_id]
             user = [x for x in data if x['id'] == user_id][0]
@@ -66,25 +75,56 @@ class Users(Resource):
         return jsonify(data)
 
 
+class User(Resource):
+    @staticmethod
+    def get(user_id):
+        user = execute_sql(f"SELECT * FROM users where id={user_id}")[0]
+        wishlist = get_wishlist(user_id)
+        user['wishlist'] = wishlist
+        return jsonify(user)
+
+    @staticmethod
+    def delete(user_id):
+        execute_sql(f"delete from users where id={user_id}")
+        return 'Ok', 204
+
+
+class Wishlist(Resource):
+    @staticmethod
+    def get(user_id):
+        wishlist = get_wishlist(user_id)
+        return jsonify(wishlist)
+
+
 class Books(Resource):
     @staticmethod
     def get():
-        data = execute_sql(App.connection, "SELECT * FROM books")
+        data = execute_sql("SELECT * FROM books")
         return jsonify(data)
 
 
-class App:
+class Book(Resource):
+    @staticmethod
+    def get(isbn):
+        data = execute_sql(f"SELECT * FROM books where isbn = '{isbn}'")[0]
+        return jsonify(data)
+
+
+class Server:
     connection = None
 
     @staticmethod
     def setup(database):
-        App.connection = create_connection(database)
+        Server.connection = create_connection(database)
         app = Flask(__name__)
         api = Api(app)
         api.add_resource(Users, '/users')
+        api.add_resource(User, '/users/<user_id>')
+        api.add_resource(Wishlist, '/users/<user_id>/wishlist')
         api.add_resource(Books, '/books')
+        api.add_resource(Book, '/books/<isbn>')
         return app
 
 
 if __name__ == '__main__':
-    App.setup('db/whish.db').run(port='6639')
+    Server.setup('db/whish.db').run(port='6639')
